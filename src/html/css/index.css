@@ -1,0 +1,101 @@
+input {
+  font-size: 1.6em;
+}
+
+input.wider {
+  min-width: 10%;
+  max-width: 30%;
+}
+
+video {
+  max-width: 35%;
+  display: none;
+  max-height: 45%;
+}
+
+div#map {
+  position: relative;
+  height: 100%;
+  width: 100%;
+  min-height: 300px;
+  border: 3px solid gray;
+}
+
+video#self-video {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  z-index: 300;
+}
+
+video#counter-video {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 300;
+}
+
+#masthead {
+    /*padding-top: 30px;*/
+    position: relative;
+}
+#site-name {
+    width: 100%;
+    /*float:left;*/
+    text-align: center;
+}
+#site-name a:link,
+#site-name a:visited {
+    color: #000;
+    text-decoration: none;
+    background-color: #FFFFE5;
+    padding: 10px;
+}
+#site-name a:hover,
+#site-name a:active {
+    color: #666;
+    text-decoration: none;
+}
+
+#url {
+  text-align: center;
+  overflow: hidden;
+  position: relative;
+}
+
+#url ul {
+  list-style: none outside none;
+  float: left;
+  margin: 0 0 0 0;
+  padding: 0;
+  position: relative;
+  left: 50%;
+}
+
+#url li {
+  float: left;
+  position: relative;
+  left: -50%;
+}
+
+body {
+  background-color: #00E600;
+}
+
+#container {
+  background-color: #FFFFE5;
+  padding: 10px;
+  margin: 30px 20px 20px 20px;
+}
+
+#send_menu {
+  margin-top: 20px;
+}
+
+#line_btn {
+  float: left;
+}
+
+h2 {
+  clear: both;
+}

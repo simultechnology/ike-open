@@ -1,9 +1,242 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="utf-8">
-    <title></title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title></title>
+  <link href="css/index.css" rel="stylesheet" type="text/css">
+  <script src="js/jquery.js"></script>
+  <script src="js/peer.js"></script>
+  <!--<script src="https://maps.googleapis.com/maps/api/js?v=3.exp&sensor=false"></script>-->
+  <script src="http://218.225.89.161/cgi/loader.cgi?key=JSZ3b5685934066&ver=2.0&api=zdcmap.js,search.js,control.js,userwidget.js&force=1" type="text/javascript"></script>
 </head>
 <body>
+<div id="container">
+  <header id="masthead" class="page-header">
+      <div id="site-name">
+          <h1><a href="#" rel="home">待ち合わせ NAVI</a></h1>
+      </div>
+
+    <div id="url">
+      <ul>
+        <li>
+          <script type="text/javascript" src="//media.line.naver.jp/js/line-button.js?v=20131101" ></script>
+          <script type="text/javascript">
+            new jp.naver.line.media.LineButton({"pc":true,"lang":"ja","type":"e","text":"ここにURLを挿入","withUrl":true});
+          </script>
+        </li>
+        <li>
+          <input type="text" id="dist-peer-id">
+          <input type="button" id="send-btn" value="copy">
+        </li>
+      </ul>
+
+    </div><!-- #url -->
+      <div>
+        <h2>待ち合わせNAVIは、友達との待ち合わせをもっとスムーズにするためのサービスです。<br>右上のLINEボタンから待ち合わせをしたい友達にメッセージ(URL)を送ってください。</h2>
+      </div>
+  </header><!-- #masthead -->
+  <div id="map">
+    <div>
+      <video id="self-video" autoplay="autoplay" muted></video>
+    </div>
+    <div>
+      <video id="counter-video" autoplay="autoplay" muted></video>
+    </div>
+  </div><!-- #map -->
+</div><!-- #container -->
+  <script>
+
+    var map, myLatlon, localMarker, localMarkerColor,
+        remoteMarker, remoteMarkerColor;
+
+    var destPeerId = location.hash;
+    if (destPeerId) {
+      destPeerId = destPeerId.replace('#', '');
+      localMarkerColor = ZDC.MARKER_COLOR_ID_RED_L;
+      remoteMarkerColor = ZDC.MARKER_COLOR_ID_BLUE_L;
+    } else {
+      localMarkerColor = ZDC.MARKER_COLOR_ID_BLUE_L;
+      remoteMarkerColor = ZDC.MARKER_COLOR_ID_RED_L;
+    }
+
+    navigator.getMedia = (navigator.getUserMedia ||
+        navigator.webkitGetUserMedia ||
+        navigator.mozGetUserMedia ||
+        navigator.msGetUserMedia);
+
+    $(document).ready(function() {
+      // 現在地の取得後、地図を作成
+      getCurrentLocationWithCallback(createMap);
+
+      var peer = new Peer({key: '53402148-7030-44f5-ac4e-9811478cbecb'});
+      peer.on('open', function(id) {
+        shortenMyUrl(id);
+
+      });
+
+      navigator.getMedia(
+          {
+            video: true,
+            audio: true
+          },
+          function(localMediaStream) {
+            // 接続される側の処理
+            if (destPeerId) {
+              // 接続元のPeerIDを指定して接続開始
+              var conn = peer.connect(destPeerId);
+              //exchangeLocationInfo(conn);
+              var call = peer.call(destPeerId,
+                  localMediaStream);
+
+              call.on('stream', function(stream) {
+                createVideoByStream('#counter-video', stream);
+                // `stream` is the MediaStream of the remote peer.
+                // Here you'd add it to an HTML video/canvas element.
+              });
+            }
+            createVideoByStream('#self-video', localMediaStream);
+          },
+          // errorCallback
+          function(err) {
+            console.log("The following error occured: " + err);
+          }
+      );
+
+      // 接続イベントの受信(接続する側の処理)
+      peer.on('connection', function(conn){
+        //exchangeLocationInfo(conn);
+      });
+
+      peer.on('call', function(call) {
+        // Answer the call, providing our mediaStream
+//        console.log(mediaStream);
+        navigator.getMedia({
+              video: true,
+              audio: true
+            },
+            function(localMediaStream) {
+              call.answer(localMediaStream);
+              call.on('stream', function(stream){
+                createVideoByStream('#counter-video', stream);
+              });
+            },
+            // errorCallback
+            function(err) {
+              console.log("The following error occured: " + err);
+            }
+        );
+      });
+    });
+
+    function getCurrentLocationWithCallback(callback) {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+              var lat = position.coords.latitude;
+              var lon = position.coords.longitude;
+              var latlon = ZDC.wgsTotky(new ZDC.LatLon(lat, lon));
+              if (localMarker) {
+                localMarker.moveLatLon(latlon);
+              }
+              myLatlon = {
+                lat: latlon.lat,
+                lon: latlon.lon
+              };
+              if (callback) {
+                callback(latlon);
+              }
+            },
+            function(err) {
+              console.error(err);
+            },
+            {
+              enableHighAccuracy: true,
+              timeout: 5000,
+              maximumAge: 0
+            }
+        );
+      }
+    }
+
+    function createMap(latlon) {
+      var options = {
+        zoom: 12,
+        latlon: latlon
+      };
+      $('#map').css('height', $(window).height() - $('#masthead').height() - 110);
+      map = new ZDC.Map(document.getElementById('map'), options);
+      // 自分のマーカを作成
+      localMarker = new ZDC.Marker(latlon, {
+        color: localMarkerColor
+      });
+      map.addWidget(localMarker);
+      control_widget = new ZDC.Control(
+          {
+            pos: {
+              top: 10,
+              left: 10
+            },
+            type: ZDC.CTRL_TYPE_NORMAL
+          }
+      );
+      map.addWidget(control_widget);
+    }
+
+
+    function addRemoteMarker(data) {
+      console.log(data);
+      // リモートがマーカを作成
+      var latlon = new ZDC.LatLon(data.lat, data.lon);
+      if (!remoteMarker) {
+        remoteMarker = new ZDC.Marker(latlon, {
+          color: remoteMarkerColor
+        });
+        map.addWidget(remoteMarker);
+      } else {
+          if (remoteMarker) {
+              remoteMarker.moveLatLon(latlon);
+          }
+      }
+      getCurrentLocationWithCallback();
+    }
+
+    function shortenMyUrl(id) {
+      var myUrl = location.href.split('#')[0] + '#' + id;
+      $.ajax({
+        url: 'https://www.googleapis.com/urlshortener/v1/url?key=AIzaSyDd7l6kYBdGAXIn9Y8_lv3XbFC6KWuJSts',
+        type: 'POST',
+        contentType: 'application/json; charset=utf-8',
+        data: '{ longUrl: "' + myUrl + '"}',
+        dataType: 'json',
+        success: function (response) {
+          var shortenedUrl = response.id;
+          $('#dist-peer-id').val(shortenedUrl);
+          $('#dist-peer-id').focus();
+          $('#dist-peer-id').select();
+
+          var href = $('#url a').attr('href');
+          href = href.replace(/\?.*/, '?');
+          href += shortenedUrl;
+          $('#url a').attr('href', href);
+        }
+      });
+    }
+
+    function sendPositionByInterval(conn) {
+      setInterval(function () {
+        conn.send(myLatlon);
+      }, 2000);
+    }
+
+    function createVideoByStream(id, stream) {
+      var video = $(id);
+      $(video).css('display', 'block');
+      $(video).attr('src', window.URL.createObjectURL(stream));
+      video.onloadedmetadata = function (e) {
+        // Do something with the video here.
+      };
+    }
+  </script>
 </body>
 </html>
