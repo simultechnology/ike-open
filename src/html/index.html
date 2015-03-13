@@ -75,6 +75,10 @@
 
       });
 
+        peer.on('error', function(err) {
+            console.log(err);
+        });
+
       navigator.getMedia(
           {
             video: true,
@@ -85,7 +89,7 @@
             if (destPeerId) {
               // 接続元のPeerIDを指定して接続開始
               var conn = peer.connect(destPeerId);
-              //exchangeLocationInfo(conn);
+              exchangeLocationInfo(conn);
               var call = peer.call(destPeerId,
                   localMediaStream);
 
@@ -105,7 +109,7 @@
 
       // 接続イベントの受信(接続する側の処理)
       peer.on('connection', function(conn){
-        //exchangeLocationInfo(conn);
+        exchangeLocationInfo(conn);
       });
 
       peer.on('call', function(call) {
@@ -183,6 +187,14 @@
       map.addWidget(control_widget);
     }
 
+    function exchangeLocationInfo(conn) {
+      conn.on('open', function () {
+        // リモートが位置情報を受信
+        conn.on('data', addRemoteMarker);
+        conn.send(myLatlon);
+        sendPositionByInterval(conn);
+      });
+    }
 
     function addRemoteMarker(data) {
       console.log(data);
