@@ -190,11 +190,48 @@
     function exchangeLocationInfo(conn) {
       conn.on('open', function () {
         // リモートが位置情報を受信
-        conn.on('data', addRemoteMarker);
-        conn.send(myLatlon);
-        sendPositionByInterval(conn);
+        conn.on('data', function (data) {
+            console.log('receive!');
+            console.log(data);
+        });
+//        conn.send(myLatlon);
+//        sendPositionByInterval(conn);
+          start(conn);
       });
     }
+
+    // 音声認識開始のメソッド
+    function start (conn) {
+        recognition = new webkitSpeechRecognition();
+        //recognition.lang = document.querySelector('#select2').value;
+        // 以下2点がポイント！！
+        // 継続的に処理を行い、不確かな情報も取得可能とする.
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        // 音声結果を取得するコールバック
+        recognition.onresult = function (e) {
+            var finalText = '';
+            var interimText = '';
+            for (var i = 0; i < e.results.length; i++) {
+                // isFinalがtrueの場合は確定した内容
+                // 仕様書では「final」という変数名だが、Chromeでは「isFinal」のようです.
+                if (e.results[i].isFinal) {
+                    finalText += e.results[i][0].transcript;
+                } else {
+                    interimText += e.results[i][0].transcript;
+                }
+            }
+            //$interimSpan.textContent = interimText;
+            //$finalSpan.textContent = finalText;
+            console.log(interimText);
+            console.log(finalText);
+            conn.send(interimText);
+            conn.send(finalText);
+        };
+        recognition.start();
+        nowRecognition = true;
+    };
+
 
     function addRemoteMarker(data) {
       console.log(data);
